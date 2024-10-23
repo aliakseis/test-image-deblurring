@@ -22,18 +22,27 @@
 #ifndef XCAM_CV_EDGETAPER_H
 #define XCAM_CV_EDGETAPER_H
 
+//#include <xcam_std.h>
+//#include <ocl/cv_base_class.h>
+
 #include "cv_std.h"
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/ocl.hpp>
 
 namespace XCam {
 
 class CVEdgetaper
 {
+
 public:
-    explicit CVEdgetaper () {}
-    void edgetaper (const cv::Mat &image, const cv::Mat &psf, cv::Mat &output);
+    explicit CVEdgetaper() {};
+
+    cv::Mat edgetaper (const cv::Mat &image, const cv::Mat &psf);
 
 private:
-    void create_weights (const cv::Mat &image, const cv::Mat &psf, cv::Mat &coefficients);
+    void create_weights (cv::Mat &coefficients, const cv::Mat &psf);
+    void normalized_autocorrelation (const cv::Mat &psf, cv::Mat &auto_correlation_psf);
 
     XCAM_DEAD_COPY (CVEdgetaper);
 };

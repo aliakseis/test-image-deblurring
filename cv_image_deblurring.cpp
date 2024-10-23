@@ -183,7 +183,7 @@ CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred,
         cv::Mat input;
         if (use_edgetaper)
         {
-            _edgetaper->edgetaper (blurred_rgb[i], result_kernel, input);
+            input = _edgetaper->edgetaper (blurred_rgb[i], result_kernel);
         }
         else
         {

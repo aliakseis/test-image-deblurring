@@ -55,7 +55,7 @@ blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
 {
     SmartPtr<CVImageDeblurring> image_deblurring = new CVImageDeblurring ();
     cv::Mat kernel;
-    image_deblurring->blind_deblurring (input_image, output_image, kernel, -1, -1, false);
+    image_deblurring->blind_deblurring(input_image, output_image, kernel);// , -1, -1, false);
 }
 
 static void
