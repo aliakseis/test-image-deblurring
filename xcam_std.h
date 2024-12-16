@@ -32,7 +32,6 @@
 //}
 #include <cinttypes>
 #include <vector>
-#include "smartptr.h"
 
 namespace XCam {
 

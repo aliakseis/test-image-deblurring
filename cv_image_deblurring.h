@@ -29,6 +29,8 @@
 #include "cv_edgetaper.h"
 #include "cv_wiener_filter.h"
 
+#include <memory>
+
 namespace XCam {
 
 struct CVIDConfig {
@@ -56,10 +58,10 @@ private:
     XCAM_DEAD_COPY (CVImageDeblurring);
 
     CVIDConfig                          _config;
-    SmartPtr<CVImageProcessHelper>      _helper;
-    SmartPtr<CVImageSharp>              _sharp;
-    SmartPtr<CVEdgetaper>               _edgetaper;
-    SmartPtr<CVWienerFilter>            _wiener;
+    std::unique_ptr<CVImageProcessHelper>      _helper;
+    std::unique_ptr<CVImageSharp>              _sharp;
+    std::unique_ptr<CVEdgetaper>               _edgetaper;
+    std::unique_ptr<CVWienerFilter>            _wiener;
 };
 
 }

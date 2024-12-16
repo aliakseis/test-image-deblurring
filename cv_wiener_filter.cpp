@@ -24,8 +24,8 @@
 namespace XCam {
 
 CVWienerFilter::CVWienerFilter ()
+:_helpers(std::make_unique<CVImageProcessHelper>())
 {
-    _helpers = new CVImageProcessHelper ();
 }
 
 void

@@ -26,6 +26,8 @@
 #include "cv_std.h"
 #include "cv_image_process_helper.h"
 
+#include <memory>
+
 namespace XCam {
 
 class CVWienerFilter
@@ -39,7 +41,7 @@ private:
 
     XCAM_DEAD_COPY (CVWienerFilter);
 
-    SmartPtr<CVImageProcessHelper>  _helpers;
+    std::unique_ptr<CVImageProcessHelper>  _helpers;
 };
 
 }

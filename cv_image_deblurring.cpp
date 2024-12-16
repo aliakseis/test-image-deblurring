@@ -24,11 +24,11 @@
 namespace XCam {
 
 CVImageDeblurring::CVImageDeblurring ()
+:_helper(std::make_unique<CVImageProcessHelper>())
+,_sharp(std::make_unique<CVImageSharp>())
+,_edgetaper(std::make_unique <CVEdgetaper>())
+,_wiener(std::make_unique <CVWienerFilter>())
 {
-    _helper = new CVImageProcessHelper ();
-    _sharp = new CVImageSharp ();
-    _edgetaper = new CVEdgetaper ();
-    _wiener = new CVWienerFilter ();
 }
 
 void

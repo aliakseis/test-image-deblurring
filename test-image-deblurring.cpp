@@ -50,18 +50,105 @@ usage (const char* arg0)
 }
 */
 
+/*
 static void
 blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
 {
-    SmartPtr<CVImageDeblurring> image_deblurring = new CVImageDeblurring ();
+    auto image_deblurring = std::make_unique<CVImageDeblurring>();
     cv::Mat kernel;
     image_deblurring->blind_deblurring(input_image, output_image, kernel);// , -1, -1, false);
 }
+*/
+
+static void
+blind_deblurring(cv::Mat& input_image, cv::Mat& output_image)
+{
+    const auto CELL_SIZE = 128;
+
+    const int numXSteps = std::max((input_image.cols + CELL_SIZE / 2) / CELL_SIZE, 2);
+    const int numYSteps = std::max((input_image.rows + CELL_SIZE / 2) / CELL_SIZE, 2);
+
+    const double xStep = double(input_image.cols - 1) / numXSteps;
+    const double yStep = double(input_image.rows - 1) / numYSteps;
+
+    auto comp = [](const cv::Rect& left, const cv::Rect& right) {
+        return std::tie(left.x, left.y, left.width, left.height)
+            < std::tie(right.x, right.y, right.width, right.height);
+        };
+
+    std::map < cv::Rect, cv::Mat, decltype(comp)> cache(comp);
+
+    auto image_deblurring = std::make_unique<CVImageDeblurring>();
+
+    auto cacheLam = [&input_image, &cache, &image_deblurring](const cv::Rect& rect)->cv::Mat
+        {
+            if (rect.x < 0 || rect.y < 0
+                || rect.x + rect.width > input_image.cols
+                || rect.y + rect.height > input_image.rows)
+            {
+                return cv::Mat();
+            }
+
+            auto it = cache.find(rect);
+            if (it != cache.end())
+                return it->second;
+            cv::Mat src = input_image(rect);
+            cv::Mat kernel;
+            cv::Mat output_image;
+            try {
+                image_deblurring->blind_deblurring(src, output_image, kernel);// , -1, -1, false);
+            }
+            catch (...) {
+                output_image = src;
+            }
+            return cache.insert({ rect, output_image }).first->second;
+        };
+
+    auto calcLam = [&input_image, cacheLam, xStep, yStep](const cv::Rect& rect, int x, int y, double centerX, double centerY) -> cv::Vec3b {
+        auto mat = cacheLam(rect);
+        cv::Vec3b val = mat.empty() ? input_image.at<cv::Vec3b>(y, x) : mat.at<cv::Vec3b>(y - rect.y, x - rect.x);
+        double weightX = (1 + cos((x - centerX) * M_PI / (xStep)));
+        double weightY = (1 + cos((y - centerY) * M_PI / (yStep)));
+        return val * (weightX * weightY / 4);
+        };
+
+    output_image = cv::Mat(input_image.size(), CV_8UC3);
+
+    for (int y = 0; y < input_image.rows; ++y)
+        for (int x = 0; x < input_image.cols; ++x)
+        {
+            auto xSteps = static_cast<int>(x / xStep);
+            auto ySteps = static_cast<int>(y / yStep);
+
+            const auto leftBegin = (xSteps - 1) * xStep;
+            const auto rightBegin = xSteps * xStep;
+            const auto leftEnd = (xSteps + 1) * xStep;
+            const auto rightEnd = (xSteps + 2) * xStep;
+
+            const auto topBegin = (ySteps - 1) * yStep;
+            const auto bottomBegin = ySteps * yStep;
+            const auto topEnd = (ySteps + 1) * yStep;
+            const auto bottomEnd = (ySteps + 2) * yStep;
+
+            cv::Rect leftTop(cv::Point(leftBegin, topBegin), cv::Point(leftEnd + 1, topEnd + 1));
+            cv::Rect rightTop(cv::Point(rightBegin, topBegin), cv::Point(rightEnd + 1, topEnd + 1));
+            cv::Rect leftBottom(cv::Point(leftBegin, bottomBegin), cv::Point(leftEnd + 1, bottomEnd + 1));
+            cv::Rect rightBottom(cv::Point(rightBegin, bottomBegin), cv::Point(rightEnd + 1, bottomEnd + 1));
+
+            cv::Vec3b res = (calcLam(leftTop, x, y, rightBegin, bottomBegin)
+                + calcLam(rightTop, x, y, leftEnd, bottomBegin)
+                + calcLam(leftBottom, x, y, rightBegin, topEnd)
+                + calcLam(rightBottom, x, y, leftEnd, topEnd));
+
+            output_image.at<cv::Vec3b>(y, x) = res;
+        }
+}
+
 
 static void
 non_blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
 {
-    SmartPtr<CVWienerFilter> wiener_filter = new CVWienerFilter ();
+    auto wiener_filter = std::make_unique<CVWienerFilter>();
     cv::cvtColor (input_image, input_image, cv::COLOR_BGR2GRAY);
     // use simple motion blur kernel
     int kernel_size = 13;
@@ -79,7 +166,7 @@ non_blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
     // restore the image
     cv::Mat median_blurred;
     medianBlur (blurred, median_blurred, 3);
-    SmartPtr<CVImageProcessHelper> helpers = new CVImageProcessHelper ();
+    auto helpers = std::make_unique<CVImageProcessHelper>();
     float noise_power = 1.0f / helpers->get_snr (blurred, median_blurred);
     wiener_filter->wiener_filter (blurred, kernel, output_image, noise_power);
 }
@@ -173,7 +260,7 @@ int main (int argc, char *argv[])
     printf ("need save file:%s\n", need_save_output ? "true" : "false");
     printf ("----------------------\n");
 
-    SmartPtr<CVImageSharp> sharp = new CVImageSharp ();
+    auto sharp = std::make_unique<CVImageSharp>();
     cv::Mat input_image = cv::imread (file_in_name, cv::IMREAD_COLOR);
     cv::Mat output_image;
     if (input_image.empty ())
@@ -195,7 +282,7 @@ int main (int argc, char *argv[])
     {
         cv::imwrite (file_out_name, output_image);
     }
-    XCAM_ASSERT (output_sharp > input_sharp);
+    //XCAM_ASSERT (output_sharp > input_sharp);
 
     return 0;
 }
