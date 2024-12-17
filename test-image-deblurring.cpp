@@ -96,7 +96,7 @@ blind_deblurring(cv::Mat& input_image, cv::Mat& output_image)
             cv::Mat kernel;
             cv::Mat output_image;
             try {
-                image_deblurring->blind_deblurring(src, output_image, kernel);// , -1, -1, false);
+                image_deblurring->blind_deblurring(src, output_image, kernel, -1, -1, false);
             }
             catch (...) {
                 output_image = src;
