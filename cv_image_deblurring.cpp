@@ -152,8 +152,14 @@ CVImageDeblurring::estimate_kernel_size (const cv::Mat &image)
 void
 CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred, cv::Mat &kernel, int kernel_size, float noise_power, bool use_edgetaper)
 {
-    cv::Mat gray_blurred;
-    cv::cvtColor (blurred, gray_blurred, cv::COLOR_BGR2GRAY);
+    //cv::Mat gray_blurred;
+    //cv::cvtColor (blurred, gray_blurred, cv::COLOR_BGR2GRAY);
+    cv::Mat yuv_blurred;
+    cv::cvtColor(blurred, yuv_blurred, cv::COLOR_BGR2YUV);
+    std::vector<cv::Mat> blurred_yuv(3);
+    cv::split(yuv_blurred, blurred_yuv);
+    cv::Mat gray_blurred = blurred_yuv[0].clone(); //gray_blurred
+
     if (noise_power < 0)
     {
         cv::Mat median_blurred;
@@ -172,10 +178,10 @@ CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred,
     else {
         XCAM_LOG_DEBUG ("edgetaper will not be used");
     }
-    std::vector<cv::Mat> blurred_rgb (3);
-    cv::split (blurred, blurred_rgb);
-    std::vector<cv::Mat> deblurred_rgb (3);
-    cv::Mat result_deblurred;
+    //std::vector<cv::Mat> blurred_rgb (3);
+    //cv::split (blurred, blurred_rgb);
+    std::vector<cv::Mat> deblurred_yuv (3);
+    //cv::Mat result_deblurred;
     cv::Mat result_kernel;
     blind_deblurring_one_channel (gray_blurred, result_kernel, kernel_size, noise_power);
     for (int i = 0; i < 3; i++)
@@ -183,17 +189,26 @@ CVImageDeblurring::blind_deblurring (const cv::Mat &blurred, cv::Mat &deblurred,
         cv::Mat input;
         if (use_edgetaper)
         {
-            input = _edgetaper->edgetaper (blurred_rgb[i], result_kernel);
+            input = _edgetaper->edgetaper (blurred_yuv[i], result_kernel);
         }
         else
         {
-            input = blurred_rgb[i].clone ();
+            input = blurred_yuv[i].clone ();
         }
-        _wiener->wiener_filter (input, result_kernel, deblurred_rgb[i], noise_power);
-        _helper->apply_constraints (deblurred_rgb[i], 0);
+        _wiener->wiener_filter (input, result_kernel, deblurred_yuv[i], noise_power);
+        _helper->apply_constraints (deblurred_yuv[i], 0);
     }
-    cv::merge (deblurred_rgb, result_deblurred);
-    result_deblurred.convertTo (result_deblurred, CV_8UC3);
+    //cv::merge (deblurred_rgb, result_deblurred);
+
+    cv::Mat yuv_deblurred;
+    cv::merge (deblurred_yuv, yuv_deblurred);
+
+    yuv_deblurred.convertTo(yuv_deblurred, CV_8UC3);
+
+    cv::Mat result_deblurred;
+    cv::cvtColor(yuv_deblurred, result_deblurred, cv::COLOR_YUV2BGR);
+
+    //result_deblurred.convertTo (result_deblurred, CV_8UC3);
     cv::fastNlMeansDenoisingColored (result_deblurred, deblurred, 3, 3, 7, 21);
     kernel = result_kernel.clone ();
 }
