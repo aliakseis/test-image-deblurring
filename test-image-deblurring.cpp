@@ -50,7 +50,7 @@ usage (const char* arg0)
 }
 */
 
-/*
+//*
 static void
 blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
 {
@@ -58,12 +58,13 @@ blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
     cv::Mat kernel;
     image_deblurring->blind_deblurring(input_image, output_image, kernel);// , -1, -1, false);
 }
-*/
+//*/
 
+/*
 static void
 blind_deblurring(cv::Mat& input_image, cv::Mat& output_image)
 {
-    const auto CELL_SIZE = 128;
+    const auto CELL_SIZE = 256;
 
     const int numXSteps = std::max((input_image.cols + CELL_SIZE / 2) / CELL_SIZE, 2);
     const int numYSteps = std::max((input_image.rows + CELL_SIZE / 2) / CELL_SIZE, 2);
@@ -98,7 +99,9 @@ blind_deblurring(cv::Mat& input_image, cv::Mat& output_image)
             try {
                 image_deblurring->blind_deblurring(src, output_image, kernel);//, -1, -1, false);
             }
-            catch (...) {
+            catch (const std::exception& ex) {
+                std::cerr << "x: " << rect.x << " y: " << rect.y << "; "
+                    << typeid(ex).name() << ": " << ex.what() << '\n';
                 output_image = src;
             }
             return cache.insert({ rect, output_image }).first->second;
@@ -143,7 +146,7 @@ blind_deblurring(cv::Mat& input_image, cv::Mat& output_image)
             output_image.at<cv::Vec3b>(y, x) = res;
         }
 }
-
+//*/
 
 static void
 non_blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)

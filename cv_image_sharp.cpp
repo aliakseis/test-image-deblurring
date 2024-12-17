@@ -21,6 +21,27 @@
 
 #include "cv_image_sharp.h"
 
+static void medianThreshold(const cv::Mat& src, cv::Mat& dst) {
+    // Ensure the source image is single-channel
+    CV_Assert(src.type() == CV_32FC1);
+
+    // Step 1: Calculate the median value
+    std::vector<float> pixels;
+    pixels.reserve(src.rows * src.cols);
+    for (int y = 0; y < src.rows; ++y) {
+        for (int x = 0; x < src.cols; ++x) {
+            pixels.push_back(src.at<float>(y, x));
+        }
+    }
+    std::nth_element(pixels.begin(), pixels.begin() + pixels.size() / 2, pixels.end());
+    auto median = pixels[pixels.size() / 2];
+
+    // Step 2: Apply binary thresholding using the median value
+    //cv::threshold(src, dst, median, 255, cv::THRESH_BINARY);
+    dst = src >= median;
+}
+
+
 namespace XCam {
 
 cv::Mat
@@ -35,10 +56,23 @@ CVImageSharp::sharp_image_gray (const cv::Mat &image, float sigmar)
     cv::Mat sharp_filter = (cv::Mat_<float>(3, 3) << 0, -1, 0, -1, 4, -1, 0, -1, 0);
     cv::Mat filtered_image;
     cv::filter2D (bilateral_image, filtered_image, -1, sharp_filter);
+
+    cv::Mat contrastMask = abs(filtered_image);
+    //contrastMask.convertTo(contrastMask, CV_8U);
+    //cv::threshold(contrastMask, contrastMask, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    medianThreshold(contrastMask, contrastMask);
+
     //cv::normalize (filtered_image, filtered_image, 0, 255.0f, cv::NORM_MINMAX);
-    cv::Mat sharpened = temp_image + filtered_image;
-    cv::normalize (sharpened, sharpened, 0, 255.0f, cv::NORM_MINMAX);
-    return sharpened.clone ();
+    
+    //cv::Mat sharpened = temp_image + filtered_image;
+    filtered_image += temp_image;
+    filtered_image.copyTo(temp_image, contrastMask);
+
+    //cv::normalize (sharpened, sharpened, 0, 255.0f, cv::NORM_MINMAX);
+    //return sharpened.clone ();
+
+    cv::normalize(temp_image, temp_image, 0, 255.0f, cv::NORM_MINMAX);
+    return temp_image.clone();
 }
 
 float
