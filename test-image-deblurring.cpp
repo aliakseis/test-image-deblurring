@@ -55,6 +55,7 @@ static void
 blind_deblurring (cv::Mat &input_image, cv::Mat &output_image)
 {
     auto image_deblurring = std::make_unique<CVImageDeblurring>();
+    image_deblurring->set_config(10);
     cv::Mat kernel;
     image_deblurring->blind_deblurring(input_image, output_image, kernel);// , -1, -1, false);
 }
